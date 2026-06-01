@@ -1,278 +1,689 @@
-# Tutorial prompt — paste this into Claude
+Build a single self-contained HTML file called index.html. It must work 
+when opened via VS Code Live Server or dragged directly into a browser — 
+no build step, no npm, no external CSS or JS files. All styles inline in 
+one <style> tag, all JavaScript inline in one <script> tag at the bottom. 
+External CDN links are allowed only for Supabase.
 
-Build a single self-contained HTML file called `dashboard.html`. It must work when double-clicked from the desktop or opened via VS Code Live Server — no build step, no npm, no external CSS or JS. All styles inline in `<style>`, all JavaScript inline in one `<script>` tag at the bottom.
-
-The file has four components stacked vertically: a **Page title** at the very top, then a **Goal Ticker** strip, then a **Day Ring**, then a **To Do List** section.
-
----
-
-## Visual style (whole file)
-
-- Dark theme. Page background `#050506` with two soft radial washes layered on top: a warm orange wash `rgba(224, 118, 88, 0.16)` at 82% across / 14% down, and a cool grey wash `rgba(180, 180, 200, 0.06)` at 18% across / 90% down. Both blurred 40px and slowly drifting via a 36s alternating animation.
-- A second `body::after` layer adds a tiny film-grain dot pattern (3px × 3px tile, white at ~1.4% opacity) so the dark never looks plastic.
-- Body font: Apple system stack — `-apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif`. Mono font (used for numbers, times, dates): `ui-monospace, "SF Mono", Menlo, Consolas, monospace`.
-- Text colors as CSS variables: `--text-primary: #FAFAFA`, `--text-secondary: #B8B6B0`, `--text-tertiary: #76746E`.
-- Semantic colors: `--success: #6BE3A4`, `--warning: #F2C063`, `--danger: #FF6B6B`.
-- Card chassis: `rgba(255, 255, 255, 0.04)` background, no visible border, 16px radius, 18–22px padding, `backdrop-filter: blur(24px) saturate(1.2)`, soft shadow `0 12px 40px rgba(0,0,0,0.45)`.
-- Body is centered, max-width 1100px, with safe-area-aware top padding.
+The app is called TimeBlox — a dark-mode time-blocking and productivity 
+web app that works on desktop and mobile.
 
 ---
 
-## Component 1 — Page title
+Visual style (whole file)
 
-A single `<h1 class="dash-title">My Dashboard</h1>` at the very top of the body. Styled as:
+Dark theme. Page background #0D0D0F. Body font: -apple-system, 
+BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica, Arial, 
+sans-serif. Mono font (numbers, times, durations): ui-monospace, 
+"SF Mono", Menlo, Consolas, monospace.
 
-- `font-size: 28px`, `font-weight: 700`, `letter-spacing: -0.025em`.
-- A vertical white-to-soft-grey gradient masked into the text — set `background: linear-gradient(180deg, #FFFFFF 0%, #C7C4BC 120%)`, then `-webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;` so the gradient shows through the letterforms.
-- 14px bottom margin so it spaces nicely from the ticker that follows.
-- On screens ≤ 480px: shrink to `font-size: 22px`.
+CSS variables:
+  --bg:           #0D0D0F
+  --bg-card:      rgba(255,255,255,0.04)
+  --bg-hover:     rgba(255,255,255,0.07)
+  --border:       rgba(255,255,255,0.08)
+  --text-primary: #FAFAFA
+  --text-secondary: #B8B6B0
+  --text-tertiary:  #76746E
+  --accent-green:  #6BE3A4
+  --accent-blue:   #5B9CF6
+  --accent-purple: #A78BFA
+  --accent-yellow: #F2C063
+  --accent-pink:   #F472B6
+  --accent-red:    #FF6B6B
+  --success:       #6BE3A4
+  --danger:        #FF6B6B
+
+Category colors:
+  Fun Block        → --accent-green   #6BE3A4
+  Focus Block      → --accent-blue    #5B9CF6
+  Night Routine    → --accent-purple  #A78BFA
+  Morning Routine  → --accent-yellow  #F2C063
+  Custom Block     → --accent-pink    #F472B6
+
+Card chassis: background var(--bg-card), border 1px solid var(--border), 
+border-radius 16px, padding 18px 20px, backdrop-filter blur(24px) 
+saturate(1.2), box-shadow 0 12px 40px rgba(0,0,0,0.45).
+
+Body: centered, max-width 900px, padding 20px 16px, safe-area-aware. 
+On screens ≤ 480px: padding 12px 10px.
 
 ---
 
-## Component 2 — Goal Ticker (NASDAQ-style strip)
+App shell
 
-A horizontal strip below the title that cycles through today's pending goals one at a time, every 5 seconds, with vertical slide-in / slide-out animations. Looks like a stock ticker / LED board.
+At the very top render the app title:
+  <h1 class="app-title">TimeBlox</h1>
+Styled: font-size 26px, font-weight 800, letter-spacing -0.03em, 
+background linear-gradient(180deg, #FFFFFF 0%, #C7C4BC 120%), 
+-webkit-background-clip text, -webkit-text-fill-color transparent, 
+margin-bottom 16px.
 
-**Structure** (inside a wrapper `.ticker-row` with 18px bottom margin, 4px gap, single column):
+Below the title, a sticky tab bar with five tabs:
+  <nav class="tab-bar">
+    <button class="tab-btn active" data-tab="calendar">📅 Calendar</button>
+    <button class="tab-btn" data-tab="stats">📊 Stats</button>
+    <button class="tab-btn" data-tab="templates">⚡ Templates</button>
+    <button class="tab-btn" data-tab="todo">✅ To-Do</button>
+    <button class="tab-btn" data-tab="quotes">💬 Quotes</button>
+  </nav>
 
-```
-<div class="goal-ticker" id="goalTicker" aria-live="polite" aria-atomic="true">
-  <div class="goal-ticker-led"><span class="goal-ticker-led-dot"></span></div>
-  <div class="goal-ticker-label">GOALS</div>
-  <div class="goal-ticker-stage" id="goalTickerStage">
-    <div class="goal-ticker-row">
-      <span class="goal-ticker-status" data-status="">—</span>
-      <span class="goal-ticker-text">Loading…</span>
+Tab bar styling: flex row, gap 4px, background rgba(255,255,255,0.03), 
+border 1px solid var(--border), border-radius 14px, padding 5px, 
+margin-bottom 20px, position sticky, top 0, z-index 100, 
+backdrop-filter blur(20px). Each .tab-btn: flex 1, padding 8px 4px, 
+border-radius 10px, font-size 12px, font-weight 600, color 
+var(--text-secondary), background transparent, border none, cursor pointer, 
+transition all 0.2s. Active tab: background rgba(255,255,255,0.10), 
+color var(--text-primary). On screens ≤ 480px: font-size 10px, 
+padding 7px 2px.
+
+Each tab content is a <div class="tab-content" id="tab-{name}"> that is 
+shown (display block) or hidden (display none) based on active tab. 
+Switching tabs is instant with no animation.
+
+---
+
+Tab 1 — Calendar
+
+Structure inside #tab-calendar:
+
+TOP: A calendar navigation row.
+  <div class="cal-nav">
+    <button id="calPrev">‹</button>
+    <div class="cal-view-toggle">
+      <button class="cal-view-btn active" data-view="day">Day</button>
+      <button class="cal-view-btn" data-view="week">Week</button>
+      <button class="cal-view-btn" data-view="month">Month</button>
+    </div>
+    <button id="calNext">›</button>
+  </div>
+  <div class="cal-label" id="calLabel"></div>
+
+calLabel shows the current view range:
+  Day view: "Monday, June 2" (full weekday, full month, day).
+  Week view: "Jun 2 – Jun 8" or "May 26 – Jun 1" for cross-month weeks.
+  Month view: "June 2026".
+
+calPrev / calNext move by one day / one week / one month depending on 
+current view. Styled as ghost buttons, 32px square, border-radius 8px, 
+font-size 18px, color var(--text-secondary).
+
+FOCUS PROGRESS BAR (shown in Day view only):
+  <div class="focus-progress" id="focusProgress">
+    <div class="focus-progress-label">
+      <span id="focusCountText">0 / 0 Focus Blocks</span>
+      <span id="focusPct">0%</span>
+    </div>
+    <div class="focus-bar-track">
+      <div class="focus-bar-fill" id="focusBarFill"></div>
     </div>
   </div>
-  <div class="goal-ticker-meta" id="goalTickerMeta">0/0</div>
-</div>
-```
 
-**Styling**
+focus-bar-track: height 6px, background rgba(255,255,255,0.08), 
+border-radius 99px. focus-bar-fill: height 100%, background 
+var(--accent-blue), border-radius 99px, transition width 0.4s 
+cubic-bezier(0.22,1,0.36,1). Recalculates instantly on any block 
+add / delete / complete / incomplete. Deleted blocks excluded.
 
-- `.goal-ticker` — flex row, 10px gap, 7px×12px padding, 12px radius, dark glass background using a layered gradient + repeating scan-line texture for the LED-board feel:
-  ```
-  background:
-    linear-gradient(180deg, rgba(0,0,0,0.42) 0%, rgba(0,0,0,0.30) 100%);
-  background-image:
-    linear-gradient(180deg, rgba(0,0,0,0.42) 0%, rgba(0,0,0,0.30) 100%),
-    repeating-linear-gradient(0deg, rgba(255,255,255,0.025) 0, rgba(255,255,255,0.025) 1px, transparent 1px, transparent 3px);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
-  position: relative; overflow: hidden;
-  ```
-- A `::after` pseudo-element drifts a soft white sweep across the strip every 8s (left -40% → 110%) — `linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent)`, 30% wide, full height.
-- `.goal-ticker-led-dot` — a 7×7 green dot (`#6BE3A4`) with `box-shadow: 0 0 8px rgba(107,227,164,0.7)` and a 1.6s pulse animation that drops opacity to 0.45 and scales to 0.85 at the midpoint.
-- `.goal-ticker-label` — the word `GOALS`. 9.5px mono, weight 800, 0.18em tracking, tertiary text.
-- `.goal-ticker-stage` — flex 1, 22px tall, `position: relative; overflow: hidden;` so rows can slide in/out within it.
-- `.goal-ticker-row` — flex row inside the stage. 22px tall, 8px gap, 12.5px mono, weight 600, tabular nums, primary white text. `white-space: nowrap`.
-- `.goal-ticker-status` — 18px wide flex slot for the status glyph. `data-status="done"` → `#6BE3A4`, `pending` → tertiary, `empty` → tertiary. Glyphs: `done` = `✓`, `pending` = `○`, otherwise `·`.
-- `.goal-ticker-text` — flex 1, ellipsis on overflow.
-- `.goal-ticker-meta` — the small right-side counter pill (`0/3`, `2/5`, etc.). 11px mono weight 700, tabular, secondary text, 0.04em tracking, 3px×8px padding, fully rounded, `rgba(255,255,255,0.04)` background.
-- Two animations for the row swap:
-  ```
-  .goal-ticker-row.is-leaving  → ticker-leave 0.45s cubic-bezier(0.55, 0, 0.55, 1) forwards
-  .goal-ticker-row.is-entering → ticker-enter 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards
-  ```
-  `ticker-leave`: opacity 1 → 0, translateY 0 → -100%. `ticker-enter`: opacity 0 → 1, translateY 100% → 0.
-- On screens ≤ 480px: padding 9px×12px, label 9px / 0.14em, row text 12px, meta 10px / 2px×7px.
+BLOCKS AREA:
+  <div id="blocksArea"></div>
 
-**Behavior**
+In Day view: renders all blocks for the selected day sorted by creation 
+order. Each block is a card with drag handle for reordering.
 
-- The ticker reads today's goal list (the same `goals:YYYY-MM-DD` localStorage key the To Do List uses) and builds an `items` array:
-  - If `total === 0`: a single placeholder item `{ status: 'empty', text: 'No goals set for today — add one to get rolling.' }`.
-  - Else if every goal is done: a single celebration item `{ status: 'done', text: '✓ All goals done — solid day.' }`.
-  - Else: one item per pending (unchecked) goal — `{ status: 'pending', text: g.text }`. Done goals are skipped — once you check it off, it drops out of the rotation.
-- The right-side `meta` pill always shows overall progress as `done/total` (e.g. `2/5`), even when only pending goals are rotating through, so completed work is still visible.
-- `tick()` shows the current item, advances `cycleIdx`, and updates `meta`. Each call swaps the row: stamp the existing row with `is-leaving` (and remove it from the DOM after 460ms), append a fresh row with `is-entering`. On the very first render there's no leaving row, so just drop the entering one in without the animation class.
-- `start()` runs `tick()` immediately, then `setInterval(tick, 5000)`.
-- **Stay in sync with edits.** When the To Do List `storeSet`s any `goals:`-prefixed key, fire a custom event:
-  ```
-  window.dispatchEvent(new CustomEvent('goals-changed'));
-  ```
-  The ticker listens for `goals-changed` and re-runs `tick()` immediately (resetting `cycleIdx` to 0) so adding/checking/deleting/reordering a goal updates the strip instantly instead of waiting up to 5 seconds.
+In Week view: renders a 7-column week grid (Mon–Sun). Each column has 
+a day header (short weekday + date number) and lists that day's block 
+count. Clicking a day header switches to Day view for that day.
+
+In Month view: renders a 7-column calendar grid (Mon–Sun headers). 
+Each cell shows the date number and a colored dot for each block that day 
+(max 3 dots, then +N more). Clicking a cell switches to Day view for 
+that date. Cross-month weeks are fully supported — no isolated 
+single-day weeks. Cells outside the current month are dimmed 
+(opacity 0.35).
+
+ADD BLOCK BUTTON (Day view only):
+  <button class="add-block-btn" id="addBlockBtn">+ Add Time Block</button>
+Styled: full width, dashed border 1.5px var(--border), border-radius 12px, 
+padding 12px, color var(--text-secondary), background transparent, 
+font-size 13px, font-weight 600, cursor pointer. Hover: border-color 
+var(--accent-blue), color var(--accent-blue).
 
 ---
 
-## Component 3 — Day Ring
+Block card structure
 
-A circular SVG progress ring that fills throughout the day, paired with a text column on its right.
+Each block renders as a card inside blocksArea:
 
-**Structure**
-- A flex container, centered, with 26px gap, items wrap on narrow screens.
-- LEFT: a 168×168px square containing an SVG ring (viewBox 0 0 120 120) plus an absolutely-positioned text overlay centered inside it.
-- The SVG has two circles, both `cx=60 cy=60 r=52`:
-  1. Track: `fill: none; stroke: rgba(255,255,255,0.06); stroke-width: 8;`
-  2. Fill: same geometry but `stroke-linecap: round`, with `stroke-dasharray` and `stroke-dashoffset` set by JS, rotated `-90` around `(60, 60)` so 0% starts at the top, and a soft `feGaussianBlur` glow filter applied.
-  3. Both stroke color and offset have a 0.7s `cubic-bezier(0.22, 1, 0.36, 1)` transition.
-- Inside the ring (centered, stacked vertically, `pointer-events: none`):
-  - **Percentage**: 40px, weight 800, tabular-nums, `letter-spacing: -0.04em`.
-  - **Phase label**: 9.5px mono uppercase, weight 800, `letter-spacing: 0.16em`, tertiary text, 5px above margin.
-  - **Live clock**: 10.5px mono, tertiary text.
-- RIGHT (max-width 280px column, 6px gap):
-  - **Status line**: 14px primary text, weight 700.
-  - **Remaining time**: 12px mono, secondary text.
-  - **Hours range**: 11px mono, tertiary text — static text `8:00 AM – 12:00 AM`.
-- On screens ≤ 480px: ring shrinks to 144×144, percentage to 32px, status to 13px.
+  <div class="block-card" data-id="{id}" data-category="{category}">
+    <div class="block-header">
+      <span class="drag-handle">⋮⋮</span>
+      <span class="block-color-dot"></span>
+      <span class="block-title-text">{title}</span>
+      <span class="block-total-time">{X}m</span>
+      <button class="block-toggle">▾</button>
+      <button class="block-complete-btn">{done ? ✓ : ○}</button>
+      <button class="block-edit-btn">✎</button>
+      <button class="block-delete-btn">×</button>
+    </div>
+    <div class="block-body" style="display:{collapsed?none:block}">
+      <div class="block-mood" id="mood-{id}"></div>
+      <div class="block-notes" id="notes-{id}"></div>
+      <div class="block-checklist" id="checklist-{id}"></div>
+      <div class="block-segments" id="segments-{id}"></div>
+      <button class="add-segment-btn" data-block="{id}">+ Add Segment</button>
+    </div>
+  </div>
 
-**Behavior**
-- The "awake window" runs 8:00 AM → midnight (16 hours = 100%). Define `WAKE_HOUR = 8` and `SLEEP_HOUR = 24` as constants at the top so they're easy to tweak.
-- Compute current hours as `now.getHours() + now.getMinutes()/60 + now.getSeconds()/3600`.
+Block card styling:
+border-left: 3.5px solid {category color}, border-radius 14px, 
+background var(--bg-card), border 1px solid var(--border), 
+margin-bottom 10px, overflow hidden. Completed blocks: opacity 0.55, 
+background rgba(107,227,164,0.04).
 
-  | Time | Behavior |
-  |---|---|
-  | Before 8 AM | Empty ring, dim slate stroke `#4D4B47`, percentage shows `—`, phase `SLEEPING`, status `😴 Still sleeping`, remaining shows `Xh Ym until wake-up`. |
-  | 8 AM – midnight | Fill the ring proportionally. `percent = (hours - 8) / 16 * 100`. Stroke color is interpolated from a 9-stop sun-cycle palette (see below). Phase + status by quartile. Remaining shows `Xh Ym awake time left`. |
-  | After midnight (shouldn't normally hit before resetting) | Ring full, stroke `#E25D7A`, phase `PAST BEDTIME`, status `⚠️ Past bedtime`, remaining shows `Sleep!`. |
+block-header: flex row, align-items center, gap 8px, padding 12px 14px, 
+cursor pointer on toggle.
 
-- **Sun-cycle palette stops** — interpolate linearly between the two adjacent stops based on the current percent:
-  ```
-  0%    [255, 216, 158]   morning gold
-  12.5% [255, 205, 121]   warm gold
-  25%   [255, 227, 143]   bright midday
-  37.5% [255, 183, 106]   peach
-  50%   [255, 149,  89]   amber
-  62.5% [243, 111,  79]   sunset orange
-  75%   [226,  93, 122]   sunset pink
-  87.5% [123,  91, 176]   twilight purple
-  100%  [ 47,  58, 102]   deep night blue
-  ```
+block-color-dot: 10px circle filled with category color, flex-shrink 0.
 
-- **Phase + status by quartile** (when in awake window):
-  - `< 25%` → `MORNING` / `☀️ Morning — fresh start`
-  - `< 50%` → `MIDDAY` / `⚡ Midday — keep moving`
-  - `< 75%` → `AFTERNOON` / `🔥 Afternoon — push it`
-  - `< 90%` → `EVENING` / `⏳ Evening — wrap up`
-  - else → `BEDTIME` / `🌙 Bedtime soon`
+block-title-text: flex 1, font-size 14px, font-weight 700, 
+color var(--text-primary), click to inline-edit (same pattern as 
+dashboard — contentEditable, Enter commits, Escape cancels).
 
-- Live clock format: 12-hour with AM/PM, e.g. `9:49 AM` (no leading zero on hour, two-digit minutes).
-- Ring circumference = `2 * Math.PI * 52`. Set `stroke-dasharray` to that. Set `stroke-dashoffset` to `C * (1 - percent/100)`.
-- Run the update once on load, then `setInterval(updateDayBar, 60 * 1000)`.
+block-total-time: 11px mono, color var(--text-tertiary), auto-calculated 
+as sum of all segment durations in minutes. Updates live.
 
----
+block-toggle: rotates ▾ (expanded) / ▸ (collapsed), 0.2s transition.
 
-## Component 4 — To Do List
+block-complete-btn: 28px circle, border 1.5px solid var(--border), 
+font-size 13px. Completed: background var(--accent-green), 
+border-color var(--accent-green), color #0D0D0F.
 
-Wrap in `<div class="section">`. The section header is a small uppercase eyebrow that reads `To Do List` (NOT "Goalmaxxing" — the section title is literally the words "To Do List"). The eyebrow has a short dash before the text and a fading horizontal line after it:
+block-edit-btn, block-delete-btn: 24px, color var(--text-tertiary), 
+hover color var(--text-primary) / var(--accent-red).
 
-```
-.section-title {
-  font-size: 10.5px; font-weight: 700;
-  letter-spacing: 0.18em; text-transform: uppercase;
-  color: var(--text-tertiary);
-  display: flex; align-items: center; gap: 12px;
-}
-.section-title::before { content: ''; width: 18px; height: 1px; background: var(--text-tertiary); opacity: 0.6; }
-.section-title::after  { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, rgba(255,255,255,0.08), transparent); }
-```
+drag-handle: ⋮⋮ 14px wide, opacity 0 on idle, opacity 1 on row hover, 
+grab cursor, letter-spacing -2px.
 
-Inside the section, two cards stacked: **TODAY** and **PLAN TOMORROW**.
-
-### TODAY card
-
-Header row (flex, space-between, wrap, 14px bottom margin):
-- LEFT column:
-  - Eyebrow: `Today — {Sat, May 9}` — formatted as `{weekday-short}, {month-short} {day}`. ID `todayLabel`. 10.5px uppercase tertiary, 0.18em letter-spacing, 6px bottom margin.
-  - Progress row (flex, baseline-aligned, 6px gap):
-    - Big number `gmProgressNum` — 42px, weight 700, `letter-spacing: -0.045em`, tabular-nums.
-    - `gmProgressTotal` — `/ 0`, 18px mono, tertiary.
-    - `gmProgressLabel` — small uppercase, 11px, weight 600, 0.10em tracking, tertiary. Reads:
-      - `no goals yet` when total = 0
-      - `complete` when in progress
-      - `all done — solid day` when total > 0 and all done.
-- RIGHT: streak pill `gmStreak`, an inline-flex pill with 6px gap, 8px×12px padding, fully rounded:
-  - Default: `rgba(255,255,255,0.04)` background, tertiary text.
-  - Active (streak count > 0): `rgba(242,192,99,0.10)` background, `#F2C063` text, `0.32` border-color, the bolt icon gets a `drop-shadow(0 0 6px rgba(242,192,99,0.6))`.
-  - Contents: `⚡` (13px), then `gmStreakNum` (mono tabular, weight 700), then label `day streak` (uppercase, 0.10em tracking).
-
-Segmented progress bar `gmBar` — flex row, 4px gap, 6px tall, 16px bottom margin. One `<div class="gm-bar-seg">` per goal. Done segments get `gm-bar-seg-done`: `background: #6BE3A4; box-shadow: 0 0 6px rgba(107,227,164,0.40)`. Empty bar (no segments) hides via `.gm-bar:empty { display: none; }`.
-
-Goal list `<ul id="goalList" class="goal-list gm-list">`. Empty state `<div id="emptyState" class="empty-state">No goals for today yet — add one below.</div>` — 12px tertiary italic, 14px vertical padding, centered.
-
-Each goal row is a flex item with 12px gap, 12px×14px padding, 6px bottom margin, `rgba(255,255,255,0.035)` background, 12px radius, hairline border `rgba(255,255,255,0.06)`. On hover: lighter background, drag handle and delete button fade in. Contents in this order:
-1. **Drag handle** `⋮⋮` — 14px wide, hidden until hover (opacity 0 → 1), grab cursor, `letter-spacing: -2px` so the dots tighten.
-2. **Custom checkbox** — 22px square, 7px radius, 1.5px border `rgba(255,255,255,0.18)`, dark inner background. When checked: `#6BE3A4` background, glow `0 0 12px rgba(107,227,164,0.40)`, and a ::after rotated checkmark that pops in via 0.28s `cubic-bezier(0.34, 1.56, 0.64, 1)` scale animation.
-3. **Goal text** — flex 1, click to edit inline (sets `contentEditable="true"`, adds outline, Enter commits, Escape cancels).
-4. **⚡ Queue button** `.gm-queue-btn` — toggles a "queued for productivity window" flag. Default: tertiary, 0.55 opacity. Active: `#F2C063` with a `drop-shadow(0 0 4px rgba(242,192,99,0.65))`. Tapping triggers a 0.48s flash animation `gm-queue-flash` (background pulses to `rgba(242,192,99,0.32)` and scales to 1.015).
-5. **× delete button** `.goal-delete` — tertiary, hover red, 0.5 opacity until row hover.
-
-Done rows: 0.45 opacity, green-tinted background `rgba(107,227,164,0.04)`, text gets `line-through` with `text-decoration-color: rgba(255,255,255,0.4)`.
-
-Queued rows: yellow-tinted background `rgba(242,192,99,0.10)` with a `inset 3px 0 0 0 #F2C063` left accent stripe, text color `#FFE2A8`.
-
-When all goals are checked: the card itself gets `.gm-all-done` — adds a soft green radial gradient at the top, `.gm-progress-num` and `.gm-progress-label` turn green.
-
-If goals length > 5: render only the first 5, then a dashed-border "Show N more ▾" toggle row that expands to show the rest (and switches to "Show less ▴").
-
-After the list:
-- **Push remaining button** `gmPushBtn` — shown only when there's at least one unchecked goal. Full-width, dashed border, tertiary text, hover solidifies to primary. On click: confirm prompt, then move every unchecked goal into the tomorrow list (skip duplicates by exact text match), then strip them from today (keeping only the checked ones).
-- **Quick-add row** `.goal-input-wrap.gm-input-wrap` with a 14px top border + 14px top padding so it feels separated from the list:
-  - Text input `goalInput` — flex 1, 11px×14px padding, 12px radius, glass background, white-on-focus border, placeholder `Add a goal for today…`.
-  - **+ Add button** `goalAddBtn` — primary white pill: `linear-gradient(180deg, #FFFFFF 0%, #E8E5DD 100%)` background, `#0A0A0B` text, weight 700, 11px×20px padding, multi-layer shadow including inset top highlight. Hover: lifts 1px and brightens.
-  - **✨ Polish button** `goalPolishBtn` — secondary glass pill: `rgba(255,255,255,0.04)` background, primary text, 1px hairline border `rgba(255,255,255,0.10)`, otherwise same shape as Add.
-- A 11px tertiary status line `polishStatus` for transient messages.
-
-### PLAN TOMORROW card
-
-Same chassis with class `gm-card gm-card-tomorrow`. The progress row is hidden (`.gm-card-tomorrow .gm-progress-row { display: none; }`). Header has:
-- Eyebrow `tomorrowLabel` → `Plan tomorrow — {Sun, May 10}`.
-- Below it, sub-text `Write tonight, locked until 6 AM.` — 12px tertiary.
-- Right: count badge `gmTomorrowCount` reads `0 planned` / `3 planned` etc. — 11px mono uppercase tabular tertiary.
-
-Goal list, empty state `Nothing planned for tomorrow yet`, and identical quick-add row (with `tomorrowInput`, `tomorrowAddBtn`, `tomorrowPolishBtn`, `tomorrowStatus`). The difference: tomorrow rows render in **read-only mode** — checkboxes are disabled with title `Activates at 6 AM tomorrow`, and the ⚡ button is disabled. Inline edit, drag-reorder, and × delete all still work.
+Drag-and-drop reordering of blocks within the day using HTML5 
+drag/drop — same pattern as dashboard goal list.
 
 ---
 
-## Logic & state
+Block body sections
 
-All persistence in `localStorage` only. Key shape: `goals:YYYY-MM-DD` → array of `{ text, done, doneAt?, queued? }`. Streak state under `goal_streak_v1` → `{ count, lastProcessedDate }`.
+MOOD REFLECTION (shown after block is marked complete):
+  Five emoji buttons in a row: 😁 🙂 😐 😞 💩
+  Selected emoji gets background rgba(255,255,255,0.12) and scale 1.15.
+  Stored as block.mood. If not yet completed, hide this section.
+
+NOTES:
+  A <textarea> or contentEditable div, placeholder "Add notes…", 
+  11px, color var(--text-secondary), background transparent, 
+  border 1px solid var(--border), border-radius 8px, padding 8px 10px, 
+  saves on blur. Hidden if empty and block is not being edited.
+
+CHECKLIST:
+  List of { text, done } items attached to the block.
+  Each row: checkbox + text (inline-editable) + × delete.
+  Checked items: opacity 0.5, line-through.
+  Below list: small input + "Add item" button.
+  Users can edit and delete checklist items at any time.
+
+SEGMENTS:
+  List of timed segments inside the block.
+  Each segment row:
+    <div class="segment-row">
+      <span class="seg-type-badge">{Work|Break|Custom}</span>
+      <span class="seg-title">{title or placeholder}</span>
+      <span class="seg-duration">{N}m</span>
+      <button class="seg-delete">×</button>
+    </div>
+  seg-type-badge: 9px uppercase mono, padding 2px 6px, border-radius 4px.
+    Work → background rgba(91,156,246,0.15), color var(--accent-blue)
+    Break → background rgba(107,227,164,0.15), color var(--accent-green)
+    Custom → background rgba(244,114,182,0.15), color var(--accent-pink)
+  Each segment title is inline-editable. Each segment duration is 
+  inline-editable (number input, minutes). On any duration change, 
+  block-total-time recalculates immediately.
+
+ADD SEGMENT BUTTON:
+  Opens a small inline form directly below the segment list:
+    Type selector (Work / Break / Custom)
+    Title input (optional)
+    Duration input (minutes, required)
+    Confirm + Cancel buttons
+  On confirm: push segment to block.segments, recalculate total, save, 
+  re-render.
+
+---
+
+Block edit modal
+
+Clicking block-edit-btn opens a full modal overlay:
+  <div class="modal-overlay" id="blockModal">
+    <div class="modal-card">
+      <h2 class="modal-title">Edit Block</h2>
+      <label>Title <input id="modalTitle"></label>
+      <label>Category
+        <select id="modalCategory">
+          <option>Fun Block</option>
+          <option>Focus Block</option>
+          <option>Night Routine</option>
+          <option>Morning Routine</option>
+          <option>Custom Block</option>
+        </select>
+      </label>
+      <label>Color <input type="color" id="modalColor"></label>
+      <div class="modal-actions">
+        <button id="modalSave">Save</button>
+        <button id="modalCancel">Cancel</button>
+        <button id="modalSaveAsTemplate">Save as Template</button>
+      </div>
+    </div>
+  </div>
+
+Modal overlay: position fixed, inset 0, background rgba(0,0,0,0.72), 
+backdrop-filter blur(8px), display flex, align-items center, 
+justify-content center, z-index 1000.
+
+Modal card: var(--bg-card) background, border 1px solid var(--border), 
+border-radius 20px, padding 24px, width min(480px, calc(100vw - 32px)), 
+max-height 80vh, overflow-y auto.
+
+For Morning Routine and Night Routine blocks, show an extra button 
+"Save as Default Routine" in the modal. Clicking it saves the block's 
+full structure (segments, checklist, notes) as the master template for 
+that routine type under localStorage key routine_template_morning or 
+routine_template_night.
+
+When creating a new Morning Routine or Night Routine block, if a master 
+template exists for that type, auto-populate segments, checklist, and 
+notes from it. The new block is fully independently editable.
+
+---
+
+Tab 2 — Stats
+
+Structure inside #tab-stats:
+
+DAILY FOCUS PROGRESS (today only):
+  Same focus progress bar as in Calendar tab — kept in sync with same 
+  data. Re-renders whenever blocks change.
+
+TWO STAT CARDS side by side (stack on mobile):
+
+  WEEKLY card:
+    Header: "This Week" + date range (Mon–Sun of current week)
+    Big number: total Focus Blocks completed this week
+    Sub-label: "Focus Blocks completed"
+    Below: a simple 7-bar chart (Mon–Sun), each bar height proportional 
+    to Focus Blocks completed that day. Bars colored var(--accent-blue), 
+    height max 60px, width 100%, gap 4px. Day labels below each bar: 
+    3-letter weekday, 9px mono tertiary.
+
+  MONTHLY card:
+    Header: "This Month" + month name + year
+    Big number: total Focus Blocks completed this month
+    Sub-label: "Focus Blocks completed"
+    Below: a bar per week in the month (W1–W4/W5), height proportional 
+    to completions. Same styling as weekly bars.
+
+Stats rules:
+  Weeks run Mon→Sun.
+  Cross-month weeks are supported — a week belongs to the month in which 
+  Thursday falls (ISO 8601 convention).
+  Deleted blocks are never counted.
+  Numbers update automatically whenever blocks change.
+  No duplicate counting.
+  Handles leap years and year transitions.
+
+---
+
+Tab 3 — Templates
+
+Structure inside #tab-templates:
+
+SEARCH + FILTER ROW:
+  <div class="tmpl-controls">
+    <input id="tmplSearch" placeholder="Search templates…">
+    <select id="tmplFilter">
+      <option value="">All categories</option>
+      <option>Fun Block</option>
+      <option>Focus Block</option>
+      <option>Night Routine</option>
+      <option>Morning Routine</option>
+      <option>Custom Block</option>
+    </select>
+  </div>
+
+TEMPLATE LIST:
+  <div id="tmplList"></div>
+
+Each template renders as a card:
+  <div class="tmpl-card" data-id="{id}">
+    <div class="tmpl-color-bar"></div>  <!-- 4px top border in category color -->
+    <div class="tmpl-info">
+      <span class="tmpl-name">{name}</span>
+      <span class="tmpl-meta">{totalDuration}m · {segCount} segments · {category}</span>
+    </div>
+    <div class="tmpl-actions">
+      <button class="tmpl-import-btn">Import</button>
+      <button class="tmpl-rename-btn">✎</button>
+      <button class="tmpl-delete-btn">×</button>
+    </div>
+  </div>
+
+tmpl-card: flex row, align-items center, gap 12px, padding 12px 14px, 
+background var(--bg-card), border 1px solid var(--border), 
+border-radius 12px, margin-bottom 8px.
+
+tmpl-name: font-size 14px, font-weight 700, color var(--text-primary).
+tmpl-meta: font-size 11px, mono, color var(--text-tertiary).
+
+Import button: on click, prompt user to select a date (default today), 
+then create a new block on that date using the template's title, 
+category, color, segments, notes. The new block is fully independently 
+editable. Import feels instant.
+
+Rename: inline edit of tmpl-name (same contentEditable pattern).
+
+Templates support drag-and-drop reordering within the list.
+
+Empty state: "No templates yet — save a Focus Block as a template from 
+the Calendar tab." 12px tertiary italic, centered, 24px vertical padding.
+
+---
+
+Tab 4 — To-Do
+
+Structure inside #tab-todo:
+
+TWO SECTIONS stacked:
+
+SECTION A — Brain Dump:
+  <div class="section-header">🧠 Brain Dump</div>
+  <p class="section-sub">Quick capture — no rules, just write.</p>
+  <ul id="dumpList" class="todo-list"></ul>
+  <div class="todo-input-row">
+    <input id="dumpInput" placeholder="Capture a thought…">
+    <button id="dumpAdd">Add</button>
+  </div>
+
+Each Brain Dump item:
+  <li class="todo-item" data-id="{id}">
+    <input type="checkbox" class="todo-check">
+    <span class="todo-text">{text}</span>
+    <span class="push-count">{pushCount > 0 ? 'pushed '+pushCount+'×' : ''}</span>
+    <button class="todo-push" title="Push to tomorrow">→</button>
+    <button class="todo-delete">×</button>
+  </li>
+
+todo-item: flex row, align-items center, gap 8px, padding 10px 12px, 
+background var(--bg-card), border 1px solid var(--border), 
+border-radius 10px, margin-bottom 6px.
+
+push-count: 10px mono, color var(--accent-yellow), opacity 0.8. 
+Hidden when pushCount = 0.
+
+Carried-over items from previous days render in a "↩ Carried Over" 
+section at the very top of the Brain Dump list, with background 
+rgba(242,192,99,0.07) and a left border 3px solid var(--accent-yellow).
+
+todo-text: inline-editable (same contentEditable pattern).
+
+Checked items: opacity 0.5, line-through.
+
+Push to tomorrow: move item to tomorrow's Brain Dump list, 
+increment item.pushCount, mark item.pushedFrom = today's date. 
+Remove from today's list. On the next day the item appears under 
+"↩ Carried Over".
+
+SECTION B — Eisenhower Matrix:
+  <div class="section-header">🎯 Eisenhower Matrix</div>
+  <div class="matrix-grid" id="matrixGrid">
+    <div class="matrix-cell" data-quadrant="do-first">
+      <div class="matrix-label urgent important">✅ Urgent + Important</div>
+      <ul class="matrix-list" id="q-do-first"></ul>
+      <div class="matrix-input-row">
+        <input placeholder="Add task…">
+        <button>Add</button>
+      </div>
+    </div>
+    <div class="matrix-cell" data-quadrant="schedule">
+      <div class="matrix-label not-urgent important">📅 Not Urgent + Important</div>
+      <ul class="matrix-list" id="q-schedule"></ul>
+      <div class="matrix-input-row">…</div>
+    </div>
+    <div class="matrix-cell" data-quadrant="delegate">
+      <div class="matrix-label urgent not-important">📤 Urgent + Not Important</div>
+      <ul class="matrix-list" id="q-delegate"></ul>
+      <div class="matrix-input-row">…</div>
+    </div>
+    <div class="matrix-cell" data-quadrant="eliminate">
+      <div class="matrix-label not-urgent not-important">🗑️ Not Urgent + Not Important</div>
+      <ul class="matrix-list" id="q-eliminate"></ul>
+      <div class="matrix-input-row">…</div>
+    </div>
+  </div>
+
+matrix-grid: display grid, grid-template-columns 1fr 1fr, gap 10px. 
+On screens ≤ 600px: grid-template-columns 1fr.
+
+matrix-cell: background var(--bg-card), border 1px solid var(--border), 
+border-radius 14px, padding 14px.
+
+matrix-label colors:
+  urgent + important:     color var(--accent-red),    font-weight 700
+  not-urgent + important: color var(--accent-blue),   font-weight 700
+  urgent + not-important: color var(--accent-yellow), font-weight 700
+  not-urgent + not-important: color var(--text-tertiary), font-weight 700
+
+Each matrix task item has same structure as Brain Dump item — checkbox, 
+text, push-count, push button, delete button.
+
+Tasks can be dragged between quadrants and dragged from Brain Dump into 
+any quadrant. When dragged from Brain Dump into a quadrant, item is 
+removed from Brain Dump and added to that quadrant, retaining pushCount.
+
+Pushed matrix tasks carry over to the same quadrant the next day under 
+a "↩ Carried Over" section in that quadrant.
+
+---
+
+Tab 5 — Quotes
+
+Structure inside #tab-quotes:
+
+RANDOM QUOTE DISPLAY:
+  <div class="quote-display" id="quoteDisplay">
+    <div class="quote-text" id="quoteText">Add a quote to get started.</div>
+    <div class="quote-author" id="quoteAuthor"></div>
+  </div>
+  <button class="random-btn" id="randomQuoteBtn">✨ Random Quote</button>
+
+quote-display: background var(--bg-card), border 1px solid var(--border), 
+border-radius 16px, padding 24px, text-align center, margin-bottom 16px.
+quote-text: font-size 17px, font-style italic, color var(--text-primary), 
+line-height 1.6, margin-bottom 8px.
+quote-author: font-size 12px, mono, color var(--text-tertiary).
+random-btn: full-width, padding 10px, border-radius 10px, 
+background rgba(255,255,255,0.06), border 1px solid var(--border), 
+color var(--text-primary), font-size 13px, font-weight 600, 
+cursor pointer, margin-bottom 20px. 
+Hover: background rgba(255,255,255,0.10).
+
+Random button picks one quote at random from saved quotes and animates 
+it in (opacity 0 → 1, translateY 8px → 0, 0.3s ease). If no quotes 
+saved, show "No quotes yet — add one below."
+
+ADD QUOTE FORM:
+  <div class="add-quote-form">
+    <input id="quoteInput" placeholder="Type a quote…">
+    <input id="authorInput" placeholder="Author (optional)">
+    <button id="addQuoteBtn">Save Quote</button>
+  </div>
+
+SAVED QUOTES LIST:
+  <div id="quotesList"></div>
+
+Each saved quote:
+  <div class="quote-item">
+    <div class="qi-text">"{text}"</div>
+    <div class="qi-author">{author or ''}</div>
+    <button class="qi-delete">×</button>
+  </div>
+
+quote-item: background var(--bg-card), border 1px solid var(--border), 
+border-radius 12px, padding 12px 14px, margin-bottom 8px, flex row, 
+gap 10px, align-items flex-start.
+qi-text: flex 1, font-size 13px, italic, color var(--text-primary).
+qi-author: font-size 11px, mono, color var(--text-tertiary).
+qi-delete: color var(--text-tertiary), hover color var(--accent-red).
+
+---
+
+Data & sync
+
+At the very top of the <script> block declare:
+
+  const SUPABASE_URL = '';
+  const SUPABASE_ANON_KEY = '';
+  const SUPABASE_TABLE = 'timeblox_state';
+  const SHARED_KEY = 'shared-timeblox-v1';
+
+If both SUPABASE_URL and SUPABASE_ANON_KEY are non-empty, load the 
+Supabase JS client from CDN:
+  https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js
+
+On app load:
+  1. Paint the UI instantly from localStorage (key 'timeblox_local_cache').
+  2. If Supabase is configured, fetch the row where key = SHARED_KEY 
+     from SUPABASE_TABLE. On success, merge remote data into app state, 
+     update localStorage cache, re-render.
+  3. If Supabase fetch fails, silently stay on localStorage data.
+
+On every save (any block add/edit/delete, any to-do change, any quote 
+change):
+  1. Update localStorage immediately.
+  2. If Supabase is configured, upsert { key: SHARED_KEY, data: fullState, 
+     updated_at: new Date().toISOString() } to SUPABASE_TABLE.
+  3. If upsert fails, stay silent — do not block or error the UI.
+
+App state shape (one object, serialized to JSON):
+  {
+    blocks: { 'YYYY-MM-DD': [ ...blockObjects ] },
+    templates: [ ...templateObjects ],
+    routineTemplates: { morning: {...}, night: {...} },
+    todos: { 'YYYY-MM-DD': { dump: [...], matrix: { 'do-first': [...], 
+             'schedule': [...], 'delegate': [...], 'eliminate': [...] } } },
+    quotes: [ { id, text, author } ]
+  }
+
+Also generate a separate file called supabase-setup.sql containing:
+  CREATE TABLE IF NOT EXISTS timeblox_state (
+    key TEXT PRIMARY KEY,
+    data JSONB NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+  );
+  ALTER TABLE timeblox_state DISABLE ROW LEVEL SECURITY;
+
+---
+
+Logic & state
 
 Helper functions:
-- `storeGet(key)` → `JSON.parse` or null.
-- `storeSet(key, value)` → `localStorage.setItem` JSON-stringified.
-- `storeDelete(key)` and `storeListKeys(prefix)` over `localStorage.length`.
+  getDateStr(date) → 'YYYY-MM-DD' string.
+  getTodayStr() → today's date string.
+  getTomorrowStr() → tomorrow's date string.
+  getWeekDays(dateStr) → array of 7 date strings Mon–Sun for 
+    the week containing dateStr.
+  getMonthWeeks(year, month) → array of weeks (each an array of 
+    7 date strings) for the month grid, including leading/trailing days 
+    to complete Mon–Sun rows. No isolated single-day weeks.
 
-**Active date logic** — the dashboard treats 6 AM as the day boundary, not midnight. So:
-- `getActiveDateString()`: if current `getHours() < 6`, subtract a day. Otherwise today's calendar date. Format `YYYY-MM-DD`.
-- `getTomorrowDateString()`: if current hours < 6, return today's calendar date (because the active day is yesterday). Otherwise tomorrow's calendar date.
-- `formatDate("YYYY-MM-DD")` returns `Sat, May 9` style — used for both eyebrows.
+Active state:
+  let activeTab = 'calendar'
+  let calView = 'day'
+  let calDate = getTodayStr()  // currently selected date
 
-**Rollover** — runs once on load. Walks every `goals:` key strictly older than the active date, takes any undone goals and pushes them into today's list (deduped by exact text), then deletes the old day's record entirely.
+All renders read from a central state object. Every mutation goes 
+through a save(newState) function that:
+  1. Updates the in-memory state object.
+  2. Writes to localStorage.
+  3. Fires a Supabase upsert (non-blocking).
+  4. Calls the relevant render functions.
 
-**Streak check** — runs once on load. Walks every `goals:` key older than today, in date order, starting from `lastProcessedDate`. For each: if 0 goals → skip (don't break the streak); if all done → +1; else → reset to 0. Persist the new count and date.
+renderCalendar() — re-renders blocksArea and calLabel based on 
+calView and calDate.
+renderFocusProgress(dateStr) — counts Focus Blocks for dateStr, 
+updates bar and text.
+renderStats() — rebuilds the Stats tab cards and charts.
+renderTemplates() — rebuilds the Templates tab list.
+renderTodo(dateStr) — rebuilds To-Do tab for dateStr.
+renderQuotes() — rebuilds Quotes tab.
 
-**Render functions:**
-- `renderTodayHeader()` — re-reads today's goals, updates the big number, total, label, fills the segmented bar, toggles `gm-all-done` on the card, shows/hides the push button.
-- `renderStreak()` — updates the streak number and toggles `gm-streak-active`.
-- `renderTomorrowCount()` — updates the `N planned` badge.
-- `renderListInto(goals, listEl, emptyEl, key, readOnly)` — clears the `<ul>`, builds rows via `buildGoalRow`, applies the show-more collapse if > 5, calls the appropriate header renderer at the end.
-- `loadToday()` and `loadTomorrow()` — re-read storage and call `renderListInto`.
-
-**Row interactions** are wired in `buildGoalRow`:
-- Checkbox change → set `goals[idx].done = cb.checked`, stamp `doneAt = Date.now()` when checking, delete it when unchecking, save, re-render.
-- Inline edit (`makeInlineEdit`) — click sets `contentEditable=true`, focuses, places caret at end. Blur or Enter commits (saves only if text changed and isn't empty); Escape cancels.
-- Drag (`wireDragReorder`) — HTML5 drag/drop. On drop, splice from-index out, splice into to-index, save, re-render. Add a top-border indicator on the drag-over row.
-- Queue button click → toggle `queued`, save, add `is-queue-flashing` class on the row, then re-render after 480ms so the user sees the pulse before the row rebuilds.
-- Delete → splice out at idx, save, re-render.
-
-**Add + Polish** wired by a shared `makeAddHandlers(input, addBtn, polishBtn, key, statusEl, reload)`:
-- Add: trim input, push `{ text, done: false }`, save, clear input, reload.
-- Polish: at the very top of the JS, declare `const ANTHROPIC_API_KEY = '';`. If empty → fall back to plain Add and show a brief tertiary message in `statusEl` saying `Polish needs an Anthropic API key — added as-typed.` for 3.5 seconds. If a key is set → POST to `https://api.anthropic.com/v1/messages` with headers `Content-Type: application/json`, `x-api-key: <KEY>`, `anthropic-version: 2023-06-01`, `anthropic-dangerous-direct-browser-access: true`. Body: model `claude-sonnet-4-5`, `max_tokens: 1000`, single user message asking the model to clean up exactly ONE goal and return it as a one-element JSON array of strings (no preamble, no fences). Parse, push, save, clear input. On any error: add the raw text and show `Polish failed — added as-typed.` in red for 3.5s.
-- Enter in the input fires Add (not Polish).
-
-After both handlers wired: call `loadToday()` and `loadTomorrow()`. Run `renderStreak()` once. Run the day-ring update once and start the 60-second interval.
+Animations:
+  Expand/collapse block body: max-height 0 → max-height 1000px, 
+  overflow hidden, transition 0.3s cubic-bezier(0.22,1,0.36,1).
+  Checklist item completion: opacity 1 → 0.5, transition 0.2s.
+  Quote random display: opacity 0, translateY 8px → opacity 1, 
+  translateY 0, transition 0.3s ease.
+  Drag-and-drop: opacity 0.5 on dragged item.
 
 ---
 
-## Acceptance checklist
+Acceptance checklist
 
-- File runs from a `file://` URL or VS Code Live Server with no errors in console.
-- The page opens with a gradient `My Dashboard` headline at the top.
-- The goal ticker shows a green pulsing LED, the word `GOALS`, the current pending goal in mono, and a `done/total` pill on the right. It cycles to the next pending goal every 5 seconds with a vertical slide animation. Adding, checking, deleting, or reordering a goal updates the ticker immediately (not on the next 5s cycle).
-- When all goals are checked, the ticker shows `✓ All goals done — solid day.` instead of an empty rotation. With zero goals, it shows `No goals set for today — add one to get rolling.`
-- Day ring shows the correct percentage at the current time, with the right phase label and color.
-- Adding a goal to Today shows it in the list; checking it greens out the row, fills its segment, and updates the counter.
-- Hitting all goals turns the whole card green-tinted and changes the label to `all done — solid day`.
-- Inline-edit, drag-reorder, queue-flash, delete, push-remaining, and tomorrow-list (read-only checkboxes) all work as described.
-- Refreshing the page restores all state from localStorage.
-- The section title reads exactly `To Do List` — capital T, capital D, capital L — not "Goalmaxxing".
+The file runs from a file:// URL or VS Code Live Server with no 
+console errors.
+
+App title "TimeBlox" appears at the top with gradient text.
+
+Five tabs render and switch instantly: Calendar, Stats, Templates, 
+To-Do, Quotes.
+
+Day view shows blocks for the selected day. Adding a block opens the 
+edit modal. Block renders with color-coded left border, title, total 
+time, expand/collapse, complete button, edit button, delete button.
+
+Segments inside a block auto-sum to block total time. Adding a segment 
+updates the total immediately.
+
+Checklist items inside a block are editable and deletable.
+
+Mood emoji selector appears after a block is marked complete.
+
+Morning Routine and Night Routine blocks show "Save as Default Routine" 
+in the edit modal. New Morning/Night blocks auto-populate from the 
+saved template.
+
+Focus progress bar in Day view recalculates instantly on any change.
+
+Week view shows Mon–Sun columns with block counts. Month view shows a 
+full calendar grid with colored dots. Cross-month weeks render 
+correctly with no isolated single-day days.
+
+Stats tab shows accurate weekly and monthly Focus Block completion 
+counts and bar charts.
+
+Templates tab lists saved templates with name, duration, segment count, 
+category. Import, rename, delete, search, and filter all work.
+
+To-Do tab Brain Dump allows fast capture. Eisenhower Matrix shows 4 
+quadrants. Tasks can be dragged between quadrants and in from Brain Dump.
+
+Push to Tomorrow moves a task to the next day, increments push counter, 
+and shows "pushed N×". Carried-over tasks appear under "↩ Carried Over" 
+with yellow left border.
+
+Quotes tab saves quotes with optional author, shows them in a list, 
+random button surfaces one with a fade-in animation.
+
+All data persists after page refresh via localStorage.
+
+If SUPABASE_URL and SUPABASE_ANON_KEY are filled in, data syncs 
+across every device, browser, profile, and incognito session.
+
+The file is entirely self-contained — one index.html file with no 
+external dependencies except the optional Supabase CDN.
